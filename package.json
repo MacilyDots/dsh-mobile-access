@@ -1,0 +1,56 @@
+{
+  "name": "dsh-mobile-access",
+  "version": "0.2.0",
+  "description": "DeepSeek Harness 移动访问插件：同一局域网内手机扫码、浏览器访问。自研实现，参考 dsh-mobile 的安全网关思路（独立 HTTPS 网关 + PIN 认证 + 反向代理 + DSH 浏览器会话认证桥接，不修改 DSH 源码，DSH Web 仍留在 127.0.0.1）。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "test",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "mobile",
+    "lan",
+    "https-gateway",
+    "qr-code"
+  ],
+  "license": "MIT",
+  "author": "MacilyDots",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MacilyDots/dsh-mobile-access.git"
+  },
+  "homepage": "https://github.com/MacilyDots/dsh-mobile-access#readme",
+  "bugs": {
+    "url": "https://github.com/MacilyDots/dsh-mobile-access/issues"
+  },
+  "scripts": {
+    "harness:check": "node --check index.js && node --check client.js",
+    "test": "node test/bridge.test.mjs && node test/integration.test.mjs && node test/websocket.test.mjs"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1",
+    "qrcode": "^1.5.4",
+    "selfsigned": "^5.5.0"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "immediately": true
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
