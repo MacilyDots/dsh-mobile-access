@@ -1,0 +1,8 @@
+# dsh-mobile-access bundle patch: inject the mobile-access host plugin.
+# State (enabled flag, PIN, cert, port, LAN info) lives in $DSH_HOME/mobile-access,
+# computed inside index.js. The profile's own cordis.patch.yml and any --patch
+# overlays still come later, so a user can override/disable this row by id.
+- insert:
+    - id: mobile-access
+      name: dsh-mobile-access
+      inject: [webServer]

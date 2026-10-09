@@ -1,0 +1,16 @@
+# 运行态：网关状态 + 自签名证书私钥（绝不入库）
+_state/
+
+# 依赖
+node_modules/
+
+# 本地开发探针（含本机 PIN / 端口，不入库）
+_bench.mjs
+_call.mjs
+_login.mjs
+_test.mjs
+
+# 杂项
+*.log
+.DS_Store
+Thumbs.db
