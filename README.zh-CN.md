@@ -1,5 +1,7 @@
 # dsh-mobile-access
 
+[![DSH Market](https://raw.githubusercontent.com/2BingLing/dsh-market/master/assets/readme/badge-listed-zh.svg)](https://dsh.market/)
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 DeepSeek Harness 移动访问插件：**同一局域网内，手机扫码后用自己的浏览器访问电脑上的 DSH**。

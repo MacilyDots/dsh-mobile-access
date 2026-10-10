@@ -1,5 +1,7 @@
 # dsh-mobile-access
 
+[![DSH Market](https://raw.githubusercontent.com/2BingLing/dsh-market/master/assets/readme/badge-listed-en.svg)](https://dsh.market/)
+
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 DeepSeek Harness mobile access plugin: **on the same LAN, scan a QR code with your phone and reach the DSH running on your computer from the phone's own browser**.
