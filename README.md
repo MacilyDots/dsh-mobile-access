@@ -63,6 +63,12 @@ dsh --profile <profile>
 
 On first enable, the plugin generates a self-signed certificate and caches it at `$DSH_HOME/mobile-access/cert.pem` and `key.pem`. The phone browser remembers your trust from then on. The certificate is 2048-bit RSA with a 400-day validity.
 
+The certificate's SAN contains both `dsh-mobile-access` and the **current LAN IP**. The phone reaches the gateway over `https://<LAN-IP>:<port>`, so a SAN without that IP triggers a "certificate name mismatch" error even though the certificate itself is perfectly valid. Every time the gateway is enabled, the plugin checks whether the cached certificate still covers the current IP:
+
+- IP unchanged and certificate not expiring → the existing certificate is reused, so the phone needs no new trust;
+- IP changed (DHCP renewal, different network or router) → a new certificate is issued automatically and **the phone must trust the new certificate once**;
+- certificate close to expiry (less than one day left) → also reissued automatically.
+
 ## Files
 
 - `index.js` — server side: cordis plugin + HTTPS gateway + PIN authentication + reverse proxy + control routes and QR code.

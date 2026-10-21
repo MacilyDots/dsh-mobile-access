@@ -32,7 +32,7 @@
  */
 
 import { createServer as createHttpsServer } from "node:https";
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual, X509Certificate } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir, networkInterfaces } from "node:os";
@@ -205,14 +205,71 @@ function parseCookies(header) {
 
 // ---------- 证书 ----------
 
-/** 读取或生成自签名证书（持久化到状态目录）。返回 { cert, key }。 */
-async function ensureCert() {
+/** 证书主体名。手机端通过局域网 IP 访问，但 CN 保持稳定可读。 */
+const CERT_CN = "dsh-mobile-access";
+
+/**
+ * 判断缓存的证书是否仍适用于当前局域网 IP：
+ *  - 尚未过期（留 1 天余量，避免边界时刻失效）
+ *  - SAN 覆盖当前 IP
+ * 任一不满足就重新签发（手机端需重新信任一次新证书）。
+ */
+function certUsableFor(certPem, lanIp) {
+  try {
+    const x = new X509Certificate(certPem);
+    const expiry = new Date(x.validTo);
+    if (Number.isNaN(expiry.getTime()) || expiry.getTime() - Date.now() < 24 * 3600 * 1000) {
+      return false;
+    }
+    const san = x.subjectAltName ?? "";
+    const ips = [];
+    const re = /IP Address:([0-9a-fA-F.:]+)/g;
+    let m;
+    while ((m = re.exec(san)) !== null) ips.push(m[1].trim());
+    if (typeof lanIp === "string" && lanIp !== "" && !ips.includes(lanIp)) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 读取或生成自签名证书（持久化到状态目录）。返回 { cert, key }。
+ *
+ * SAN 同时包含 DNS 名与局域网 IP：手机浏览器用 IP 访问 https://<lanIp>:<port>，
+ * 若 SAN 里没有该 IP，就会因「证书域名不匹配」而报错——即使证书本身完全有效。
+ * 换 IP（DHCP 续租/换网络）后旧证书同样失配，故此处按当前 IP 校验并按需重签。
+ */
+async function ensureCert(lanIp) {
   if (existsSync(certPath()) && existsSync(keyPath())) {
-    return { cert: readFileSync(certPath(), "utf8"), key: readFileSync(keyPath(), "utf8") };
+    const cert = readFileSync(certPath(), "utf8");
+    const key = readFileSync(keyPath(), "utf8");
+    if (certUsableFor(cert, lanIp)) {
+      return { cert, key };
+    }
+  }
+  const altNames = [{ type: 2, value: CERT_CN }];
+  if (typeof lanIp === "string" && lanIp !== "") {
+    altNames.push({ type: 7, ip: lanIp });
   }
   const pems = await selfsigned.generate(
-    [{ name: "commonName", value: "dsh-mobile-access" }],
-    { days: 400, keySize: 2048, algorithm: "sha256", keyUsage: ["digitalSignature", "keyEncipherment"], extKeyUsage: ["serverAuth"] },
+    [{ name: "commonName", value: CERT_CN }],
+    {
+      keySize: 2048,
+      algorithm: "sha256",
+      // selfsigned 5.x 的 days 选项无效，必须显式给 notAfterDate
+      notAfterDate: new Date(Date.now() + 400 * 24 * 3600 * 1000),
+      // 注意：一旦传入 extensions，selfsigned 就不再套用默认扩展集，
+      // 四项必须显式写全，否则 basicConstraints / keyUsage / extKeyUsage 会整个丢失。
+      extensions: [
+        { name: "basicConstraints", cA: false, critical: true },
+        { name: "keyUsage", digitalSignature: true, keyEncipherment: true, critical: true },
+        { name: "extKeyUsage", serverAuth: true, critical: false },
+        { name: "subjectAltName", altNames, critical: false },
+      ],
+    },
   );
   mkdirSync(defaultStateDir(), { recursive: true });
   writeFileSync(certPath(), pems.cert);
@@ -267,7 +324,7 @@ class MobileGateway {
       throw new Error("请先在电脑上设置访问 PIN");
     }
 
-    const { cert, key } = await ensureCert();
+    const { cert, key } = await ensureCert(lan.address);
     this.cert = cert;
     this.key = key;
     this.port = port;
