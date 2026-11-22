@@ -1,6 +1,9 @@
 {
   "name": "dsh-mobile-access",
   "version": "0.2.0",
+  "engines": {
+    "dsh": ">=0.2.2-rc.1 <0.3.0"
+  },
   "description": "DeepSeek Harness 移动访问插件：同一局域网内手机扫码、浏览器访问。自研实现，参考 dsh-mobile 的安全网关思路（独立 HTTPS 网关 + PIN 认证 + 反向代理 + DSH 浏览器会话认证桥接，不修改 DSH 源码，DSH Web 仍留在 127.0.0.1）。",
   "type": "module",
   "main": "index.js",
